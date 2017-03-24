@@ -110,10 +110,10 @@ type appUpdateInfo struct {
 
 const (
 	MajorVersion         = 0
-	MinorVersion         = 6
-	VersionString        = "0.6-alpha"
+	MinorVersion         = 8
+	VersionString        = "0.8-alpha"
 	VersionCheckUrl      = "https://raw.githubusercontent.com/amyhaber/cnki-downloader/master/last-release.json"
-	FixedDownloadViewUrl = "https://github.com/amyhaber/cnki-downloader#download"
+	FixedDownloadViewUrl = "https://github.com/amyhaber/cnki-downloader"
 	MaxDownloadThread    = 4
 )
 
@@ -184,6 +184,18 @@ var (
 		OrderBySubject:        "dc:title",
 	}
 )
+
+//
+// replace all illegal chars to a underline char
+//
+func makeSafeFileName(fileName string) string {
+	return strings.Map(func(r rune) rune {
+		if strings.IndexRune(`/\:*?"><|`, r) != -1 {
+			return '_'
+		}
+		return r
+	}, fileName)
+}
 
 //
 // get input string from console
@@ -534,7 +546,7 @@ func (c *CNKIDownloader) SearchFirst(keyword string, option *searchOption) (*CNK
 		c.search_cache.result_list.Init()
 		c.search_cache.current = c.search_cache.result_list.PushBack(s)
 	}
-	return s, nil
+	return s, err
 }
 
 //
@@ -882,15 +894,15 @@ func (c *CNKIDownloader) getInfoURL(instance string) (string, error) {
 //
 // download paper by index
 //
-func (c *CNKIDownloader) Download(paper *Article) (string, error) {
+func (c *CNKIDownloader) Download(paper *Article, id int64) (string, error) {
 
-	url, err := c.getInfoURL(paper.Instance)
+	infoUrl, err := c.getInfoURL(paper.Instance)
 	if err != nil {
 		return "", err
 	}
 	fmt.Println("Document info url confirmed")
 
-	info, err := c.getInfo(url)
+	info, err := c.getInfo(infoUrl)
 	if err != nil {
 		return "", err
 	}
@@ -904,7 +916,11 @@ func (c *CNKIDownloader) Download(paper *Article) (string, error) {
 	if err != nil {
 		return "", nil
 	}
-	fullName := filepath.Join(currentDir, paper.Information.Title+".caj")
+	idname := strconv.FormatInt(id+1, 10)
+	t := time.Now()
+    time_of_now :=t.Format("2006-01-02 15:04:05")
+
+	fullName := filepath.Join(currentDir, makeSafeFileName(time_of_now+"_id="+idname)+".caj")
 
 	fmt.Printf("Downloading... total (%d) bytes\n", info.Size)
 	err = c.getFile(info.DownloadUrl[0], fullName, info.Size)
@@ -1031,7 +1047,7 @@ func update() (allowContinue bool) {
 	info, err := getUpdateInfo()
 	if err == nil {
 		newVersion := false
-		if info.Major > MajorVersion || info.Minor > MinorVersion {
+		if info.Major > MajorVersion || (info.Major == MajorVersion && info.Minor > MinorVersion) {
 			newVersion = true
 		}
 
@@ -1063,7 +1079,7 @@ func update() (allowContinue bool) {
 			if info.IsRequired {
 				fmt.Fprintf(color.Output, "** You %s update this version, or you cannot continue to use current program\n", color.RedString("have to"))
 			} else {
-				fmt.Println("** This version is not nacessary to be update, but I recommand you to update now")
+				fmt.Println("** This version is not necessary to be update, but I recommand you guys to update now")
 			}
 
 			fmt.Printf("** update now? [y/n]: ")
@@ -1101,7 +1117,7 @@ func update() (allowContinue bool) {
 			}
 
 		} else {
-			fmt.Println("** already is the last version")
+			fmt.Println("** already is the latest version")
 		}
 
 	} else {
@@ -1115,10 +1131,10 @@ func update() (allowContinue bool) {
 // lord commander
 //
 func main() {
-	color.Cyan("***************************************************************************\n")
-	color.Cyan("****  Welcome use CNKI-Downloader, Let's fuck these knowledge mongers  ****\n")
-	color.Cyan("****                            Good luck.                             ****\n")
-	color.Cyan("***************************************************************************\n")
+	color.Cyan("******************************************************************************\n")
+	color.Cyan("****  Welcome to use CNKI-Downloader, Let's fuck these knowledge mongers  ****\n")
+	color.Cyan("****                            Good luck.                                ****\n")
+	color.Cyan("******************************************************************************\n")
 
 	defer func() {
 		color.Yellow("** Bye.\n")
@@ -1129,8 +1145,8 @@ func main() {
 	//
 	fmt.Println()
 	fmt.Println("** NOTE: if you cannot download any document, maybe the service of")
-	fmt.Println("**       CNKI is unavailable again, in this situation, nothing ")
-	fmt.Println("**       we can do but wait, please do not open a issue on GitHub, thanks")
+	fmt.Println("**       CNKI is unavailable again, in this situation, nothing we")
+	fmt.Println("**       can do but wait, DO NOT open an issue on GitHub, thx")
 	fmt.Println("**")
 
 	//
@@ -1175,7 +1191,7 @@ func main() {
 
 		result, err := downloader.SearchFirst(s, opt)
 		if err != nil {
-			fmt.Fprintf(color.Output, "Search %s %s (%s)\n", "zzr", color.RedString("Failure"), err.Error())
+			fmt.Fprintf(color.Output, "Search '%s' %s (error: %s)\n", s, color.RedString("fail"), err.Error())
 			continue
 		}
 		printArticles(1, result.GetPageData())
@@ -1294,7 +1310,7 @@ func main() {
 					entries := ctx.GetPageData()
 
 					color.White("Downloading... %s\n", entries[id].Information.Title)
-					path, err := downloader.Download(&entries[id])
+					path, err := downloader.Download(&entries[id], id)
 					if err != nil {
 						fmt.Fprintf(color.Output, "Download failed %s\n", color.RedString(err.Error()))
 						break
