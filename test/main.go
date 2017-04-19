@@ -1225,6 +1225,8 @@ func main() {
 					fmt.Fprintf(color.Output, "\t  %s: (GET ID), download the specified item in this page, eg: GET 1, GET 14...etc\n", color.YellowString("GET"))
 					fmt.Fprintf(color.Output, "\t %s: (SHOW ID), show the information about specified item, eg: SHOW 2, SHOW 9...etc\n", color.YellowString("SHOW"))
 					fmt.Fprintf(color.Output, "\t%s: break out, and search the other papers\n", color.YellowString("BREAK"))
+					fmt.Fprintf(color.Output, "\t  %s: (GETALL), download all the items in this page \n", color.YellowString("GETALL"))
+
 				}
 			case "info":
 				{
@@ -1318,6 +1320,23 @@ func main() {
 
 					fmt.Fprintf(color.Output, "Download success (%s) \n", color.GreenString(path))
 				}
+			case "getall":
+				{
+					fmt.Println( "Downloading All the searched papers \n")
+					for id := 0; id < 20; id++ {
+					nowid:=int64(id)
+					entries := ctx.GetPageData()
+
+					color.White("Downloading... %s\n", entries[nowid].Information.Title)
+					path, err := downloader.Download(&entries[nowid], nowid)
+					if err != nil {
+						fmt.Fprintf(color.Output, "Download failed %s\n", color.RedString(err.Error()))
+						break
+					}
+
+					fmt.Fprintf(color.Output, "Download success (%s) \n", color.GreenString(path))
+				}
+			}
 			case "break":
 				{
 					downloader.SearchStop()

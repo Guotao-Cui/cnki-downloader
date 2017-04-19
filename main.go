@@ -1215,8 +1215,9 @@ func main() {
 
 			s = getInputString()
 			cmd_parts := strings.Split(s, " ")
-			switch strings.ToLower(cmd_parts[0]) {
-			case "help":
+			cmd_input:=strings.ToLower(cmd_parts[0])
+			switch  {
+			case cmd_input=="help":
 				{
 					fmt.Fprintf(color.Output, "Support follow commands:\n")
 					fmt.Fprintf(color.Output, "\t %s: show page's information\n", color.YellowString("INFO"))
@@ -1225,14 +1226,15 @@ func main() {
 					fmt.Fprintf(color.Output, "\t  %s: (GET ID), download the specified item in this page, eg: GET 1, GET 14...etc\n", color.YellowString("GET"))
 					fmt.Fprintf(color.Output, "\t %s: (SHOW ID), show the information about specified item, eg: SHOW 2, SHOW 9...etc\n", color.YellowString("SHOW"))
 					fmt.Fprintf(color.Output, "\t%s: break out, and search the other papers\n", color.YellowString("BREAK"))
-					fmt.Fprintf(color.Output, "\t  %s: (GETALL), download all the items in this page \n", color.YellowString("GETALL"))
-
+                    fmt.Fprintf(color.Output, "\t  %s: (GET ID), download the specified item in this page, eg: GET 1, GET 14...etc\n", color.YellowString("g"))
+                    fmt.Fprintf(color.Output, "\t %s: (SHOW ID), show the information about specified item, eg: SHOW 2, SHOW 9...etc\n", color.YellowString("s"))
+                    fmt.Fprintf(color.Output, "\t%s: break out, and search the other papers\n", color.YellowString("b"))
 				}
-			case "info":
+			case cmd_input=="info":
 				{
 					color.White("  page size: %d\n page index: %d\ntotal pages: %d\n", psize, pindex, pcount)
 				}
-			case "next":
+			case cmd_input=="next":
 				{
 					next_page, err := downloader.SearchNext(pindex + 1)
 					if err != nil {
@@ -1242,7 +1244,7 @@ func main() {
 						printArticles(index, next_page.GetPageData())
 					}
 				}
-			case "prev":
+			case cmd_input=="prev":
 				{
 					prev_page, err := downloader.SearchPrev()
 					if err != nil {
@@ -1252,7 +1254,7 @@ func main() {
 						printArticles(index, prev_page.GetPageData())
 					}
 				}
-			case "show":
+			case cmd_input=="show"|| cmd_input=="s":
 				{
 
 					if len(cmd_parts) < 2 {
@@ -1295,7 +1297,7 @@ func main() {
 					fmt.Println()
 
 				}
-			case "get":
+			case cmd_input=="get" || cmd_input=="g":
 				{
 					if len(cmd_parts) < 2 {
 						color.Red("Invalid input")
@@ -1320,24 +1322,7 @@ func main() {
 
 					fmt.Fprintf(color.Output, "Download success (%s) \n", color.GreenString(path))
 				}
-			case "getall":
-				{
-					fmt.Println( "Downloading All the searched papers \n")
-					for id := 0; id < 20; id++ {
-					nowid:=int64(id)
-					entries := ctx.GetPageData()
-
-					color.White("Downloading... %s\n", entries[nowid].Information.Title)
-					path, err := downloader.Download(&entries[nowid], nowid)
-					if err != nil {
-						fmt.Fprintf(color.Output, "Download failed %s\n", color.RedString(err.Error()))
-						break
-					}
-
-					fmt.Fprintf(color.Output, "Download success (%s) \n", color.GreenString(path))
-				}
-			}
-			case "break":
+			case cmd_input=="break" || cmd_input=="b":
 				{
 					downloader.SearchStop()
 					color.Yellow("Break out.\n")
